@@ -1,0 +1,591 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[spanish,es-nodecimaldot]{babel}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{wrapfig}
+\usepackage{natbib}
+\usepackage{subfigure}
+\usepackage{graphicx}
+\usepackage{mcode}
+\definecolor{mygreen}{RGB}{0,100,0}
+\usepackage{color}   %May be necessary if you want to color links
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
+}
+
+\lstset{language=Matlab,%
+    %basicstyle=\color{red},
+    breaklines=true,%
+    morekeywords={matlab2tikz},
+    keywordstyle=\color{blue},%
+    morekeywords=[2]{1}, keywordstyle=[2]{\color{black}},
+    identifierstyle=\color{black},%
+    stringstyle=\color{purple},
+    commentstyle=\color{mygreen},%
+    showstringspaces=false,%without this there will be a symbol in the places where there is a space
+    numbers=left,%
+    numberstyle={\tiny \color{black}},% size of the numbers
+    numbersep=9pt, % this defines how far the numbers are from the text
+    emph=[1]{for,switch,case,end,break},emphstyle=[1]\color{blue}, %some words to emphasise
+    %emph=[2]{word1,word2}, emphstyle=[2]{style},  
+    }
+\begin{document}
+\begin{titlepage}
+\centering
+{\scshape\LARGE Práctica B2 RSI\par}
+	\vspace{1cm}
+	{\scshape\Large Parte 2. \par}
+	\vspace{1.5cm}
+	{\huge\bfseries Variaciones rápidas y lentas\par}
+	\vspace{2cm}
+	{\Large\itshape Samuel John Suffern Sánchez\par}
+
+	\vfill
+	\vfill
+% Bottom of the page
+	{\large \today\par}
+\end{titlepage}
+
+
+%Indice
+\tableofcontents
+\listoffigures
+\pagebreak
+
+
+
+
+\section{Inicio del entorno en Matlab}
+    \par Los gráficos y resultados de esta práctica se obtienen con la función \mcode{pr10.mat}. 
+    \par Lo primero que haremos será cargar en nuestro workspace el fichero: \mcode{series12new.mat}
+    \begin{lstlisting}
+        load series2000.mat
+    \end{lstlisting}
+\section{Potencia recibida}
+    \subsection{Unidades Logarítmicas}
+    \par La variable \mcode{series2000.mat} contiene una señal que tiene en la primera columna la distancia recorrida en metros y en la segunda la señal recibida en dBm. El espacio de muestreo es \(d_{s} = lamba/4 = 0.0375m \hspace{0.1cm} \). Existe un muestreo uniforme.
+    \begin{lstlisting}
+        d = series2000(:,1); % Distancia en metros
+        P = series2000(:,2); % Potencia recibida en dBm
+        figure, plot(d,P)
+        xlabel('Traveled distance, m')
+        ylabel('Received power, dBm');title('Variation of Received power in dBm with distance');
+    \end{lstlisting} 
+
+    \begin{figure}[h]
+         \centering
+         \includegraphics[scale=0.55]{output_figures/B2/pr_dbm.eps}
+         \caption{Variación de la potencia recibida en dBm con la distancia}
+         \label{fig:my_label}   
+    \end{figure}
+    \subsubsection{Primeros 100 metros de la serie}
+        \par Representamos los primeros 100 metros de la serie:
+        \begin{lstlisting}
+            figure, plot(d,P); xlim([0 100])
+            xlabel('Traveled distance, m') ;ylabel('Received power, dBm')
+            title('First 100 m of the series')  
+        \end{lstlisting}
+        \clearpage
+        \begin{figure}[h]
+            \centering
+            \includegraphics[scale=0.55]{output_figures/B2/pr_dbm_100m.eps}
+            \caption{Primeros 100 metros de la serie en unidades logarítmicas}
+            \label{fig:my_label}
+        \end{figure}
+    \subsection{Unidades lineales}
+        \par Si ahora hacemos la representación en unidades lineales:
+        \begin{lstlisting}
+            p = 10.^(P/10)/1000;
+            figure, plot(d,p)
+            xlabel('Traveled distance, m')
+            ylabel('Received power, W')
+        \end{lstlisting}
+        \begin{figure}[h]
+            \centering
+            \includegraphics[scale=0.55]{output_figures/B2/pr_un.eps}
+            \caption{Variación de la potencia recibida en unidades lineales}
+            \label{fig:my_label}
+        \end{figure}
+        \subsubsection{Primeros 100 metros}
+            \par Ahora representamos los primeros 100 metros de la serie en unidades lineales:
+            \begin{lstlisting}
+                figure, plot(d,p)
+                xlim([0 100])
+                xlabel('Traveled distance, m')
+                ylabel('Received power, W')
+                title('First 100 m of the series')
+            \end{lstlisting}
+            \begin{figure}[h]
+                \centering
+                \includegraphics[scale=0.55]{output_figures/B2/pr_un_100m.eps}
+                \caption{Primeros 100 metros de la serie en unidades lineales}
+                \label{fig:my_label}
+            \end{figure}
+    \section{Ventana Rectangular}
+        \par Vamos a probar distintos tamaños de ventana:
+        \begin{lstlisting}
+            wlFraction = 4;  % sampling fraction of wavelength
+            ds = d(2)-d(1);   % m, sample spacing 
+            wl = ds*wlFraction;  % m, wavelength
+            windowWavelengths(1) = 5; windowWavelengths(2) = 10; windowWavelengths(3) = 20; % No. of wavelengths in running mean filte
+            windowLength(1) = wlFraction*windowWavelengths(1);windowLength(2) = wlFraction*windowWavelengths(2);windowLength(3) = wlFraction*windowWavelengths(3);  % samples in window 
+            W1 = ones(windowLength(1),1);W2 = ones(windowLength(2),1); W3 = ones(windowLength(3),1);   % Create running mean window
+            W1 = W1/windowLength(1);W2 = W2/windowLength(2);W3 = W3/windowLength(3);        % Normalize window
+            figure, stem(W1); hold on; stem(W2);stem(W3)
+            legend('N=20','N=40','N=80');
+            title('Ventana de filtrado distintos tamaños de ventana');
+            xlabel('Número de muestras');ylabel('Amplitud'); axis([-5 length(W3)+10 0 0.05])
+        \end{lstlisting}
+        \par Obtendríamos la siguiente salida:
+        \begin{figure}[h]
+            \centering
+            \includegraphics[scale=0.55]{output_figures/B2/ventanas.eps}
+            \caption{Distintos tamaños de ventana rectangular}
+            \label{fig:my_label}
+        \end{figure}
+        \par Vamos a observar lo que ocurre al convolucionar la potencia recibida en unidades lineales con los diferentes tamaños de ventana.
+        \par Utilizamos el siguiente código para representar las potencias y cambiaremos la variable \mcode{WX} para utilziar el tamaño de ventana:
+                        
+        \begin{table}[h]
+            \centering
+            \begin{tabular}{|l|l|l|l|}
+                \hline
+                    Tamaño de Ventana  & 20 & 40 & 80 \\ \hline
+                    Variable en Matlab & W1 & W2 & W3 \\ \hline
+                \end{tabular}
+            \end{table}
+            \subsection{Unidades lineales}
+            \begin{lstlisting}
+                pfilt = conv(p,W1,'same');
+                figure, plot(d, p, d, pfilt,'r')
+                xlabel('Traveled distance, m')
+                ylabel('Average received power, W');legend('Linear Power','Power after filtering');title(' Serie de potencias instantáneas y de medias locales')
+                figure, plot(d, p,d, pfilt,'r' )
+                xlim([0 100])
+                legend('Overall', 'Mean')
+                xlabel('Traveled distance, m')
+                ylabel('Power, W');title(' Serie de potencias instantáneas y de medias locales (zoom 100m)')
+            \end{lstlisting}
+         \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pfilt_20.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.45]{output_figures/B2/pfilt_100m_20.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales para N=20}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \par Haciendo los cambios indicados arriba probaremos con tamaños de ventana 40 y 80.
+            \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pfilt_40.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.45]{output_figures/B2/pfilt_100m_40.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales para N=40}
+                \label{fig:sup_rugosas}
+            \end{figure}
+          
+            \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pfilt_80.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.45]{output_figures/B2/pfilt_100m_80.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales para N=80}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \clearpage
+            \subsection{Unidades logarítmicas}
+            \par Si observamos lo que corre con la potencia en unidades logarítmicas:
+            \begin{lstlisting}
+                Pfilt = 10*log10(pfilt) + 30; % we now go back to dBm  
+                figure,plot(d, P, 'g') , hold on
+                plot(d, Pfilt, 'r', 'Linewidth',2)
+                xlabel('Traveled distance, m')
+                ylabel('Power, dBm')
+                legend('Overall', 'Mean')
+                figure, plot(d, P,'g'), hold on
+                plot(d, Pfilt, 'r', 'Linewidth',2)
+                xlabel('Traveled distance, m')
+                ylabel('Power, dBm')
+                legend('Overall', 'Mean')
+                xlim([0 50])
+                title('First 50 m in series')
+            \end{lstlisting}
+            \par Cambiamos \mcode{pfilt} en función del tamaño de ventana que estemos utilizando.
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pdbfilt_20.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pdbfilt_20_50m.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales en dBm para N=20}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \clearpage
+            
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pdbfilt_40.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pdbfilt_40_50m.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales en dBm para N=40}
+                \label{fig:sup_rugosas}
+            \end{figure}
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pdbfilt_80.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pdbfilt_80_50m.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales en dBm para N=80}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \clearpage
+        \subsection{Verificación del modelo Gaussiano y distribución Rayleigh}
+            \par Vamos a comprobar si las variaciones rápidas siguen un modelo gaussiano:
+            \begin{lstlisting}
+                MM = mean(Pfilt);
+                SS = std(Pfilt);
+                disp(['Series mean : ', num2str(MM),' dBm'])
+                disp(['Series std : ', num2str(SS),' dBm'])
+                N_bins = 20;
+                [a,b] = hist(Pfilt,N_bins);
+                histBin = b(2)-b(1);
+                a = a/length(Pfilt);
+                aa = cumsum(a);
+                % Theoretical distribution
+                Paxis = [min(Pfilt):max(Pfilt)];
+                pdf = 1/(sqrt(2*pi)*SS)*exp(-0.5*((Paxis-MM)/SS).^2);
+                fhist = pdf*histBin;
+                figure, bar(b,a,'y'), hold on, plot(Paxis, fhist,'r', 'LineWidth',2)
+                xlabel('Potecias medias, dBm')
+                ylabel('Probabilidades');title(pdf)
+                F = 1-qfunc((Paxis-MM)/SS);
+                figure, bar(b,aa, 'y'), hold on, plot(Paxis, F, 'r','LineWidth',2)
+                xlabel('Potecias medias, dBm')
+                ylabel('Probabilidad de no exceder la abscisa');title("CDF")
+            \end{lstlisting}
+            \begin{verbatim}
+                Series mean : -47.452 dBm
+                Series std : 9.6575 dBm
+            \end{verbatim}
+           
+            
+            \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{output_figures/B2/pdf_20.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{output_figures/B2/CDF_20.eps}
+               \end{subfigure}  
+             
+               \caption{Histogramas de pdf y CDF para N=20}
+                \label{fig:sup_rugosas}
+            \end{figure}
+           \par Si repetimos las cuentas para los distintos tamaños de ventana, obtenemos las siguientes dos salidas. Por cada tamaño de ventana, cambiamos el valor del número de bins que cogemos para las cuentas.
+            \clearpage
+        
+            \begin{verbatim}
+                Series mean : -47.3304 dBm
+                Series std : 9.6003 dBm
+            \end{verbatim}
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{output_figures/B2/pdf_40.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{output_figures/B2/CDF_40.eps}
+               \end{subfigure}    
+               \caption{Histogramas de pdf y CDF para N=40}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \begin{verbatim}
+                Series mean : -47.2369 dBm
+                Series std : 9.5569 dBm
+            \end{verbatim}
+
+
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{output_figures/B2/PDF_80.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{output_figures/B2/CDF_80.eps}
+               \end{subfigure}    
+               \caption{Histogramas de pdf y CDF para N=80}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \par Como se puede observar:
+             \begin{enumerate}
+                 \item La pdf sigue un modelo Gausssiano con valores positivos 
+                 \item La CDF sigue una distribución exponencial
+             \end{enumerate}
+            \par Por lo tanto queda comprobado que las variaciones rápidas siguen una distribución Rayleigh.
+            \par Por último vamos a extraer las variaciones rápidas de la señal.
+    \clearpage
+    \subsection{Extración de las variaciones rápidas}
+        \begin{lstlisting}
+            P0 = P - Pfilt;
+            figure, plot(d, P0)
+            ylabel('Normalized fast variations, dB')
+            xlabel('Traveled distance, m')
+            xlim([0 50])
+            title('First 50 m of series')
+            vnorm = 10.^(P0/20);
+            % mean(r0.^2)   
+            figure, plot(d, vnorm)
+            ylabel('Normalized fast variations, dB')
+            xlabel('Traveled distance, m')
+            xlim([0 50])
+            title('First 50 m of series')
+        \end{lstlisting}
+            
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{20_1.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{20.eps}
+               \end{subfigure}    
+               \caption{Extracción de las variaciones rápidas para una ventana N=20 rectangular}
+                \label{fig:sup_rugosas}
+        \end{figure}
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{40_1.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{40.eps}
+               \end{subfigure}    
+               \caption{Extracción de las variaciones rápidas para una ventana N=40 rectangular}
+                \label{fig:sup_rugosas}
+        \end{figure}
+        \clearpage
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{RAPIDAS1_80.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.4]{80.eps}
+               \end{subfigure}    
+               \caption{Extracción de las variaciones rápidas para una ventana N=80 rectangular}
+                \label{fig:sup_rugosas}
+        \end{figure}
+
+    \par Como ya sabemos, hemos realizado el estudio con una ventana rectangular que tiene lóbulos laterales muy elevados, vamos a probar a hacer los cálculos rápidamente con una ventana hanning.
+    
+    \section{Ventana Hanning}
+        \par Vamos a realizar el estudio al igual que con la rectangular, con tres ventanas Hanning de distintos tamaños.
+        \begin{lstlisting}
+            WX=20;
+            Whanning = hann(WX)/WX;
+            figure, stem(Whanning);hold on;
+            WX=40;
+            Whanning=hann(WX)/WX; stem(Whanning);hold on;
+            WX=80;
+            Whanning=hann(WX)/WX;stem(Whanning);
+            legend('N=20','N=40','N=80');
+            title('Ventanas Hanning normalizadas por el número de puntos');
+            xlabel('Número de muestras');
+            ylabel('Amplitud');
+        \end{lstlisting}    
+        \begin{figure}[h]
+            \centering
+            \includegraphics[scale=0.55]{output_figures/B2/hanning.eps}
+            \caption{Distintos tamaños de ventana Hanning}
+            \label{fig:my_label}
+        \end{figure}
+        \clearpage
+        \subsection{Unidades lineales}
+        \par Una vez tenemos los tres tipos de ventana representamos las potencias medias e instantáneas:
+        \begin{lstlisting}
+            WX=20;
+            Whanning = hann(WX)/WX;
+            pfilt = conv(p,Whanning,'same');
+            figure, plot(d, p, d, pfilt,'r')
+            xlabel('Traveled distance, m')
+            ylabel('Average received power, W');legend('Linear Power','Power after filtering');title(' Serie de potencias instantáneas y de medias locales')
+            figure, plot(d, p,d, pfilt,'r' )
+            xlim([0 100])
+            legend('Overall', 'Mean')
+            xlabel('Traveled distance, m')
+            ylabel('Power, W');title(' Serie de potencias instantáneas y de medias locales (zoom 100m)')
+        \end{lstlisting}        
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pfilt_20_hann.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.45]{output_figures/B2/pfilt_100m_20_habb.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales para N=20 con una ventana Hanning}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            
+            
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pfilt_40_hann.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.45]{output_figures/B2/pfilt_100m_40_hann.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales para N=40 con una ventana Hanning}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \clearpage
+            \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/pfilt_80_hann.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.45]{output_figures/B2/pfilt_100m_80.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales para N=80 con una ventana Hanning}
+                \label{fig:sup_rugosas}
+            \end{figure}
+        \subsection{Unidades logarítmicas}
+        \par A continuación vemos el efecto del filtrado en unidades logarítmicas:
+        \begin{lstlisting}
+                Pfilt = 10*log10(pfilt) + 30; % we now go back to dBm  
+                figure,plot(d, P, 'g') , hold on
+                plot(d, Pfilt, 'r', 'Linewidth',2)
+                xlabel('Traveled distance, m')
+                ylabel('Power, dBm'); title('Potencia recibida en dBm con respecto a la media');
+                legend('Overall', 'Mean')
+                figure, plot(d, P,'g'), hold on
+                plot(d, Pfilt, 'r', 'Linewidth',2)
+                xlabel('Traveled distance, m')
+                ylabel('Power, dBm')
+                legend('Overall', 'Mean')
+                xlim([0 50])
+                title('First 50 m in series')
+        \end{lstlisting}
+        \par Vemos que es el mismo código que hemos utilizado para la ventana rectangular, la diferencia es la variable \mcode{pfilt =conv(p,Whanning,'same')}. Al igual que la rectangular, probaremos para diferentes tamaños de ventana.
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/Hanning_20_db.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/Hanning_20_Ampliado_50.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales en dBm para N=20 con una ventana Hanning}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            \clearpage
+            
+            
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/Hanning_40_db.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/Hanning_40_Ampliado_50.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales en dBm para N=40 con una ventana Hanning}
+                \label{fig:sup_rugosas}
+            \end{figure}
+            
+            
+            
+            
+             \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/Hanning_80_db.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.55]{output_figures/B2/Hanning_80_Ampliado_50.eps}
+               \end{subfigure}    
+               \caption{Series de potencias instantáneas y medias locales en dBm para N=80 con una ventana Hanning}
+                \label{fig:sup_rugosas}
+            \end{figure}
+    
+        \par Una vez hemos visto el efecto del filtrado con la ventana Hanning en unidades lineales y logarítmicas vamos a extraer las variaciones rápidas de la señal. Nos saltamos el paso de comprobar que sigue una variación gaussiana para no repetir calculos ya que hemos comprobado que sí que la sigue.
+        \clearpage
+        \subsection{Extracción de las variaciones rápidas}
+            \begin{lstlisting}
+                 P0 = P - Pfilt;
+                figure, plot(d, P0)
+                ylabel('Normalized fast variations, dB')
+                xlabel('Traveled distance, m')
+                xlim([0 50])
+                title('First 50 m of series')
+                vnorm = 10.^(P0/20);
+                % mean(r0.^2)   
+                figure, plot(d, vnorm)
+                ylabel('Normalized fast variations, dB')
+                xlabel('Traveled distance, m')
+                xlim([0 50])
+                title('First 50 m of series')  
+            \end{lstlisting}
+            \par Reutilizando el código anterior, probamos para distintos tamaños de ventana y extraemos las variaciones rápidas.
+            \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.5]{output_figures/B2/rapidas_20.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.5]{output_figures/B2/rapidas_20_db.eps}
+               \end{subfigure}    
+               \caption{Extracción de las variaciones rápidas para una ventana N=20 Hanning}
+                \label{fig:sup_rugosas}
+        \end{figure}
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.5]{output_figures/B2/rapidas_40.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.5]{output_figures/B2/rapidas_40_db.eps}
+               \end{subfigure}    
+               \caption{Extracción de las variaciones rápidas para una ventana N=40 Hanning}
+                \label{fig:sup_rugosas}
+        \end{figure}
+        \clearpage
+        \begin{figure}[h]
+                \centering
+                \begin{subfigure}
+                    \centering          \includegraphics[scale=0.5]{output_figures/B2/rapidas_80.eps}
+               \end{subfigure}
+               \begin{subfigure}
+                    \centering          \includegraphics[scale=0.5]{output_figures/B2/rapidas_80_db.eps}
+               \end{subfigure}    
+               \caption{Extracción de las variaciones rápidas para una ventana N=80 Hanning}
+                \label{fig:sup_rugosas}
+        \end{figure}
+            
+        
+    \end{document}
